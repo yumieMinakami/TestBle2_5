@@ -3,13 +3,7 @@ package jp.techacademy.yumie.minakami.testble2_5;
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
-import android.bluetooth.BluetoothGatt;
-import android.bluetooth.BluetoothGattCallback;
-import android.bluetooth.BluetoothGattCharacteristic;
-import android.bluetooth.BluetoothGattDescriptor;
-import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothManager;
-import android.bluetooth.BluetoothProfile;
 import android.bluetooth.le.BluetoothLeScanner;
 import android.bluetooth.le.ScanCallback;
 import android.bluetooth.le.ScanResult;
@@ -34,8 +28,6 @@ import java.util.UUID;
 public class MainActivity extends AppCompatActivity {
 
     private static final int    BT_REQUEST_ENABLE = 1;
-    private static final long   SCAN_PERIOD = 100;
-    private static final int    PERMISSIONS_REQUEST_LOCATION_STATE = 100;
 
     TextView mTextMajor;
     TextView mTextMinor;
@@ -52,13 +44,8 @@ public class MainActivity extends AppCompatActivity {
     private BluetoothManager mBluetoothManager;
     private BluetoothAdapter mBluetoothAdapter;
     private BluetoothLeScanner mBluetoothLeScanner;
-//    private LeDeviceListAdapter mLeDeviceListAdapter;
-    private BluetoothGatt mBluetoothGatt;
 
     private Handler mHandler;
-
-    private boolean mUpdate = false;
-    private int i = 0;
 
     private ScanCallback mScanCallback= new ScanCallback() {
         @Override
@@ -68,8 +55,6 @@ public class MainActivity extends AppCompatActivity {
             Log.d("life", "onScanResult");
 
             scanData(result.getDevice(), result.getRssi(), result.getScanRecord().getBytes());
-
-            mBluetoothGatt= result.getDevice().connectGatt(getApplication(), false, mBtGattCallback);
         }
 
         @Override
@@ -88,65 +73,6 @@ public class MainActivity extends AppCompatActivity {
         }
 
     };      // for API 21 or later
-
-    private final BluetoothGattCallback mBtGattCallback = new BluetoothGattCallback() {
-
-        @Override
-        public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState)
-        {
-            Log.d("life", "BluetoothGattCallback --- onConnectionStateChange()");
-
-            // 接続状況が変化したら実行.
-            if (newState == BluetoothProfile.STATE_CONNECTED) {
-                Log.d("life", "BluetoothGattCallback --- onConnectionStateChange() --- STATE_CONNECTED");
-                // 接続に成功したらサービスを検索する.
-                gatt.discoverServices();
-            } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
-                Log.d("life", "BluetoothGattCallback --- onConnectionStateChange() --- STATE_DISCONNECTED");
-                // 接続が切れたらGATTを空にする.
-                if(mBluetoothGatt != null){
-                    mBluetoothGatt.close();
-//                    mBluetoothGatt = null;
-                }
-            }
-        }
-
-        @Override
-        public void onServicesDiscovered(BluetoothGatt gatt, int status)
-        {
-            Log.d("life", "BluetoothGattCallback --- onServicesDiscovered()");
-
-            // サービスが見つかったら実行.
-            if (status == BluetoothGatt.GATT_SUCCESS) {
-                Log.d("life", "BluetoothGattCallback --- onServicesDiscovered() --- service found");
-
-                BluetoothGattService service = gatt.getService(mUuid);
-                if(service != null && mUuid != null){
-                    mBluetoothGatt = gatt;
-
-                    Log.d("life", "BluetoothGattCallback --- onServicesDiscovered() --- gatt");
-                }
-
-            }
-        }
-
-        @Override
-        public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic)
-        {
-            Log.d("aaaa", "BluetoothGattCallback --- onCharacteristicChanged()");
-            mUpdate = true;
-        }
-
-        @Override
-        public void onCharacteristicRead(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status){
-//            if(mUpdate){
-//                mUpdate = false;
-            Log.d("life", "onCharacteristicRead");
-                scanData(gatt.getDevice(), i, characteristic.getValue());
-                if(i == 100000) i = 0; else i++;
-//            }
-        }
-    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -176,9 +102,9 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
-        if(mBluetoothAdapter != null){
+//        if(mBluetoothAdapter != null){
             mBluetoothLeScanner = mBluetoothAdapter.getBluetoothLeScanner();
-        }
+//        }
 
         mTextMajor = (TextView) findViewById(R.id.major);
         mTextMinor = (TextView) findViewById(R.id.minor);
@@ -276,23 +202,22 @@ public class MainActivity extends AppCompatActivity {
                 });
         }
 
-        if(mBluetoothLeScanner != null)
-                mBluetoothLeScanner.stopScan(mScanCallback);
+//        if(mBluetoothLeScanner != null)
+//                mBluetoothLeScanner.stopScan(mScanCallback);
         }
-//        mBluetoothGatt = bluetoothDevice.connectGatt(getApplicationContext(), false, mBtGattCallback);
     }
 
     protected void startBleScan(){
         if(mBluetoothLeScanner != null)
             mBluetoothLeScanner.startScan(mScanCallback);
 
-        Log.d("life", "startBleScan, lollipop <");
+        Log.d("life", "startBleScan");
     }
 
     protected void stopBleScan(){
         if(mBluetoothLeScanner != null)
             mBluetoothLeScanner.stopScan(mScanCallback);
 
-        Log.d("life", "stopBleScan, lollipop <");
+        Log.d("life", "stopBleScan");
     }
 }
