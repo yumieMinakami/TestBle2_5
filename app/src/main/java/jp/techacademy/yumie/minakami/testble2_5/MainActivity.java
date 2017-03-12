@@ -12,6 +12,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Handler;
+import android.os.ParcelUuid;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -22,6 +23,7 @@ import com.neovisionaries.bluetooth.ble.advertising.ADPayloadParser;
 import com.neovisionaries.bluetooth.ble.advertising.ADStructure;
 import com.neovisionaries.bluetooth.ble.advertising.IBeacon;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -41,6 +43,10 @@ public class MainActivity extends AppCompatActivity {
     int mPower;
     int mRssi;
 
+    int mCounter = 0;
+
+    ArrayList<UUID> mIBuuids = new ArrayList<>();
+
     private BluetoothManager mBluetoothManager;
     private BluetoothAdapter mBluetoothAdapter;
     private BluetoothLeScanner mBluetoothLeScanner;
@@ -52,7 +58,20 @@ public class MainActivity extends AppCompatActivity {
         public void onScanResult(int callbackType, final ScanResult result) {
             super.onScanResult(callbackType, result);
 
-            Log.d("life", "onScanResult");
+            Log.d("life", "onScanResult, callbackType : " + callbackType);
+
+//            ParcelUuid[] iBuuids = (result.getDevice()).getUuids();
+//            String u = "";
+//            if(iBuuids != null){
+//                for(ParcelUuid pu : iBuuids){
+//                    u += pu.toString() + "  ";
+//                }
+//            }
+//            Log.d("life", "name=" + result.getDevice().getName()
+//                    + ", bondStatus=" + result.getDevice().getBondState()
+//                    + ", address=" + result.getDevice().getAddress()
+//                    + ", type" + result.getDevice().getType()
+//                    + ", uuids=" + u);
 
             scanData(result.getDevice(), result.getRssi(), result.getScanRecord().getBytes());
         }
@@ -169,35 +188,64 @@ public class MainActivity extends AppCompatActivity {
 
     protected void scanData(BluetoothDevice bluetoothDevice, int rssi, byte[] scanRecord){
 
+        mCounter++;
+        Log.d("life", "Counter : " + mCounter);
+
         boolean flag = false;
 
         // Parse the payload of the advertising packet.
         List<ADStructure> str = ADPayloadParser.getInstance().parse(scanRecord);
 
+        Log.d("life", "ADStructure" + str);
+
         for(ADStructure structure : str){
+
             // if the ADStructure instance can be cast to IBeacon
             if(structure instanceof IBeacon){
 
                 IBeacon iBeacon = (IBeacon) structure;
 
-                mUuid = iBeacon.getUUID();  // Proximity UUID
+//                mUuid = iBeacon.getUUID();  // Proximity UUID
+                UUID Uuid = iBeacon.getUUID();  // Proximity UUID
                 mMajor = iBeacon.getMajor(); // Major number
                 mMinor = iBeacon.getMinor(); // Minor number
                 mPower = iBeacon.getPower(); // tx power
                 mRssi = rssi;
 
+                if(!(mIBuuids.isEmpty())){
+                    mUuid = Uuid;
+                    mIBuuids.add(mUuid);
+                    Log.d("life", "mUUId : " + mUuid);
+                } else {
+                    boolean b = false;
+                    for(UUID u : mIBuuids){
+//                        if(u != mUuid){
+                        if(u.equals(mUuid)){
+//                        if(!(u.equals(mUuid))){
+//                            mIBuuids.add(mUuid);
+//                            Log.d("life", "mUUId : " + mUuid);
+                            b = true;
+                        }
+                    }
+                    if(!b){
+                        mIBuuids.add(mUuid);
+                        Log.d("life", "mUUId : " + mUuid);
+                    }
+                }
+
                 Log.d("life", "IBeacon");
                 Log.d("life", "uuid : " + mUuid + ", major : " + mMajor + ", minor : " + mMinor + ", power : " + mPower + ", rssi : " + mRssi);
-
 
                 mHandler.post(new Runnable() {
                     @Override
                     public void run() {
-                        mTextuid.setText(mUuid.toString());
-                        mTextMajor.setText(String.valueOf(mMajor));
-                        mTextMinor.setText(String.valueOf(mMinor));
-                        mTextPower.setText(String.valueOf(mPower));
-                        mTextRssi.setText(String.valueOf(mRssi));
+                        if(mUuid != null){
+                            mTextuid.setText(mUuid.toString());
+                            mTextMajor.setText(String.valueOf(mMajor));
+                            mTextMinor.setText(String.valueOf(mMinor));
+                            mTextPower.setText(String.valueOf(mPower));
+                            mTextRssi.setText(String.valueOf(mRssi));
+                        }
                     }
                 });
         }
