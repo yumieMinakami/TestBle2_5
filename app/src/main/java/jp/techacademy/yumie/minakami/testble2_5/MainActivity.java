@@ -10,9 +10,9 @@ import android.bluetooth.le.ScanResult;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.os.Build;
+import android.os.CountDownTimer;
 import android.os.Handler;
-import android.os.ParcelUuid;
+import android.os.HandlerThread;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -24,12 +24,15 @@ import com.neovisionaries.bluetooth.ble.advertising.ADStructure;
 import com.neovisionaries.bluetooth.ble.advertising.IBeacon;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
 public class MainActivity extends AppCompatActivity {
 
     private static final int    BT_REQUEST_ENABLE = 1;
+    private static final int    BT_UNEBLE_PERIOD = 10000;   // 10[sec]
 
     TextView mTextMajor;
     TextView mTextMinor;
@@ -37,11 +40,14 @@ public class MainActivity extends AppCompatActivity {
     TextView mTextuid;
     TextView mTextRssi;
 
-    UUID mUuid;
-    int mMajor;
-    int mMinor;
-    int mPower;
-    int mRssi;
+//    ArrayList<BleIbeacon> mBleIbeacon = new ArrayList<>();
+    BleIbeacon mBleIbeacon = new BleIbeacon();
+
+//    UUID mUuid;
+//    int mMajor;
+//    int mMinor;
+//    int mPower;
+//    int mRssi;
 
     int mCounter = 0;
 
@@ -52,6 +58,31 @@ public class MainActivity extends AppCompatActivity {
     private BluetoothLeScanner mBluetoothLeScanner;
 
     private Handler mHandler;
+
+    private CountDownTimer mCountDowmTimer = new CountDownTimer(BT_UNEBLE_PERIOD, 500) {
+        @Override
+        public void onTick(long millisUntilFinished) {
+            Log.d("life", "CountDown remain time [sec] = " + millisUntilFinished / 1000);
+        }
+
+        @Override
+        public void onFinish() {
+
+            final HandlerThread ht = new HandlerThread("Timer onFinish");
+            ht.start();
+
+            Handler h = new Handler(ht.getLooper());
+            h.post(new Runnable() {
+                @Override
+                public void run() {
+                    displayToast(false, mBleIbeacon.uuid);
+                }
+            });
+
+            Log.d("life", "CountDown ramain time [sec] = 0!, Ble is out of range.");
+            mBleIbeacon.uuid = null;
+        }
+    };
 
     private ScanCallback mScanCallback= new ScanCallback() {
         @Override
@@ -188,6 +219,10 @@ public class MainActivity extends AppCompatActivity {
 
     protected void scanData(BluetoothDevice bluetoothDevice, int rssi, byte[] scanRecord){
 
+        boolean b = false;
+        final BleIbeacon bleIbeacon = new BleIbeacon();
+//        ArrayList<BleIbeacon> arBleIbeacon = new ArrayList<>();
+        bleIbeacon.counter = 0;
         mCounter++;
         Log.d("life", "Counter : " + mCounter);
 
@@ -205,53 +240,108 @@ public class MainActivity extends AppCompatActivity {
 
                 IBeacon iBeacon = (IBeacon) structure;
 
-//                mUuid = iBeacon.getUUID();  // Proximity UUID
-                UUID Uuid = iBeacon.getUUID();  // Proximity UUID
-                mMajor = iBeacon.getMajor(); // Major number
-                mMinor = iBeacon.getMinor(); // Minor number
-                mPower = iBeacon.getPower(); // tx power
-                mRssi = rssi;
+                bleIbeacon.uuid = iBeacon.getUUID();
+                bleIbeacon.major = iBeacon.getMajor();
+                bleIbeacon.minor = iBeacon.getMinor();
+                bleIbeacon.power = iBeacon.getPower();
+                bleIbeacon.rssi = rssi;
+                bleIbeacon.counter++;
+                bleIbeacon.time = System.currentTimeMillis();
 
-                if(!(mIBuuids.isEmpty())){
-                    mUuid = Uuid;
-                    mIBuuids.add(mUuid);
-                    Log.d("life", "mUUId : " + mUuid);
-                } else {
-                    boolean b = false;
-                    for(UUID u : mIBuuids){
-//                        if(u != mUuid){
-                        if(u.equals(mUuid)){
-//                        if(!(u.equals(mUuid))){
-//                            mIBuuids.add(mUuid);
-//                            Log.d("life", "mUUId : " + mUuid);
-                            b = true;
-                        }
-                    }
-                    if(!b){
-                        mIBuuids.add(mUuid);
-                        Log.d("life", "mUUId : " + mUuid);
-                    }
-                }
+  //              arBleIbeacon.add(bleIbeacon);
 
-                Log.d("life", "IBeacon");
-                Log.d("life", "uuid : " + mUuid + ", major : " + mMajor + ", minor : " + mMinor + ", power : " + mPower + ", rssi : " + mRssi);
+////                mUuid = iBeacon.getUUID();  // Proximity UUID
+//                UUID Uuid = iBeacon.getUUID();  // Proximity UUID
+//                mMajor = iBeacon.getMajor(); // Major number
+//                mMinor = iBeacon.getMinor(); // Minor number
+//                mPower = iBeacon.getPower(); // tx power
+//                mRssi = rssi;
+//
+//                if(!(mIBuuids.isEmpty())){
+//                    mUuid = Uuid;
+//                    mIBuuids.add(mUuid);
+//                    Log.d("life", "mUUId : " + mUuid);
+//                } else {
+//                    boolean b = false;
+//                    for(UUID u : mIBuuids){
+////                        if(u != mUuid){
+//                        if(u.equals(mUuid)){
+////                        if(!(u.equals(mUuid))){
+////                            mIBuuids.add(mUuid);
+////                            Log.d("life", "mUUId : " + mUuid);
+//                            b = true;
+//                        }
+//                    }
+//                    if(!b){
+//                        mIBuuids.add(mUuid);
+//                        Log.d("life", "mUUId : " + mUuid);
+//                    }
+//                }
+//
+//
+//                mHandler.post(new Runnable() {
+//                    @Override
+//                    public void run() {
+//                        if(mUuid != null){
+//                            mTextuid.setText(mUuid.toString());
+//                            mTextMajor.setText(String.valueOf(mMajor));
+//                            mTextMinor.setText(String.valueOf(mMinor));
+//                            mTextPower.setText(String.valueOf(mPower));
+//                            mTextRssi.setText(String.valueOf(mRssi));
+//                        }
+//                    }
+//                });
 
-                mHandler.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        if(mUuid != null){
-                            mTextuid.setText(mUuid.toString());
-                            mTextMajor.setText(String.valueOf(mMajor));
-                            mTextMinor.setText(String.valueOf(mMinor));
-                            mTextPower.setText(String.valueOf(mPower));
-                            mTextRssi.setText(String.valueOf(mRssi));
-                        }
-                    }
-                });
-        }
+                Log.d("life", "IBeacon  no[" + bleIbeacon.counter + "] uuid : " + bleIbeacon.uuid + ", major : " + bleIbeacon.major + ", minor : " + bleIbeacon.minor + ", power : " + bleIbeacon.power + ", rssi : " + bleIbeacon.rssi);
+            }
 
 //        if(mBluetoothLeScanner != null)
 //                mBluetoothLeScanner.stopScan(mScanCallback);
+        }
+
+        if(mBleIbeacon.uuid == null){    //  When there is no items on the mBleIbeacon
+            b = true;
+            mBleIbeacon = bleIbeacon;
+//            Collections.addAll(mBleIbeacon, bleIbeacon);    // add all items on the bleIbeacon to mBleIbeacon
+//            Log.d("life", "1 mBleIbeacon uuid = " + mBleIbeacon.uuid + "bleIbeacon.uuid = " + bleIbeacon.uuid);
+
+            mCountDowmTimer.start();
+            Toast.makeText(MainActivity.this, mBleIbeacon.uuid + " is coming.", Toast.LENGTH_SHORT).show();
+            Log.d("life", "1 countdown timer is started.");
+
+        } else {    // When there are some items on the mBleIbeacon
+            if(mBleIbeacon.uuid.equals(bleIbeacon.uuid)){    // iBeacon UUID is equal
+                b = true;
+
+            } else {    // iBeacon UUID is not equal
+
+            }
+//            Log.d("timer", "2 mBleIbeacon uuid = " + mBleIbeacon.uuid + "   bleIbeacon.uuid = " + bleIbeacon.uuid);
+        }
+
+//        Log.d("timer", "b = " + b);
+
+        if(b){
+            mHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    if(bleIbeacon != null){
+                        mTextuid.setText(mBleIbeacon.uuid.toString());
+                        mTextMajor.setText(String.valueOf(bleIbeacon.major));
+                        mTextMinor.setText(String.valueOf(bleIbeacon.minor));
+                        mTextPower.setText(String.valueOf(bleIbeacon.power));
+                        mTextRssi.setText(String.valueOf(bleIbeacon.rssi));
+                    }
+                }
+            });
+
+//            Log.d("life", "b = true, mBleIbeacon uuid = " + mBleIbeacon.uuid);
+
+            mCountDowmTimer.cancel();
+            Log.d("life", "2 count down timer is canceled.");
+
+            mCountDowmTimer.start();
+            Log.d("life", "2 countdown timer is started.");
         }
     }
 
@@ -267,5 +357,23 @@ public class MainActivity extends AppCompatActivity {
             mBluetoothLeScanner.stopScan(mScanCallback);
 
         Log.d("life", "stopBleScan");
+    }
+
+    static class BleIbeacon{
+        UUID    uuid;
+        int     major;
+        int     minor;
+        int     power;
+        int     rssi;
+        int     counter;
+        long    time;
+    }
+
+    private void displayToast(boolean f, UUID uuid){
+        if(f){
+            Toast.makeText(MainActivity.this, uuid + "is coming.", Toast.LENGTH_LONG).show();
+        } else {
+            Toast.makeText(MainActivity.this, uuid + "is out of range.", Toast.LENGTH_LONG).show();
+        }
     }
 }
